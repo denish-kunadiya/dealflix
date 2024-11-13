@@ -1,0 +1,118 @@
+Table report {
+  id uuid [pk]
+  order_id uuid
+  user_id uuid
+  inspection_id varchar [default: null]
+  inspection_report jsonb [default: null]
+  inspection_status varchar [default: 'INCOMPLETE', note: 'enum: COMPLETE, INCOMPLETE']
+  validation_errors jsonb [default: null]
+  required_photos jsonb [default: null]
+  missing_image_files jsonb [default: null]
+  appraisal_requirements_messages jsonb [default: null]
+  messages jsonb [default: null]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Ref: order.id < report.order_id
+Ref: profile.user_id < report.user_id
+
+Table order {
+  id uuid [pk]
+  creator_id uuid
+  assignee_id uuid
+  status varchar
+  created_at timestamptz
+  updated_at timestamptz
+
+  street_address varchar [not null]
+  city varchar [not null]
+  state varchar [not null]
+  postal_code varchar [not null]
+  floors_number int [not null]
+
+  onsite_contact_name varchar [not null]
+  onsite_contact_phone varchar [not null]
+  onsite_contact_email varchar [not null]
+
+  deliver_email varchar [not null]
+  delivery_company varchar
+  delivery_name varchar
+  delivery_phone varchar
+
+  borrower_name varchar [not null]
+  amc_name varchar [not null]
+  lender_name varchar [not null]
+
+  type  varchar [not null]
+  is_rush bool
+
+  lender_id varchar [not null]
+  lender_loan_id varchar [not null]
+}
+
+Ref: auth.users.id < order.assignee_id 
+Ref: auth.users.id < order.creator_id
+
+Table order_history {
+  id int [pk, increment]
+  order_id uuid
+  user_id uuid 
+  type varchar [not null]
+  action varchar [not null]
+  created_at timestamptz
+}
+
+Ref: profile.user_id < order_history.user_id
+Ref: order.id < order_history.order_id
+
+Table auth.users {
+  id uuid [pk]
+  email varchar
+}
+
+Table profile {
+  user_id uuid [pk, note: 'UUID from auth.users']
+  first_name varchar(255) [not null]
+  last_name varchar(255) [not null]
+  postal_code varchar(5)
+  work_radius int [not null, default: 100, note: 'miles or kms?']
+  updated_at timestamptz [note: 'db trigger']
+  blocked_at timestamptz
+  deleted_at timestamptz
+}
+
+enum app_role {
+  "admin"
+  "photographer"
+}
+
+Table role {
+  id bigint [pk, increment]
+  user_id uuid [not null]
+  role app_role [not null]
+
+  indexes {
+    (user_id, role) [unique]
+  }
+}
+
+enum app_permission {
+  "order.create"
+  "order.read"
+  "order.update"
+  "order.delete"
+}
+
+Table role_permissions {
+  id bigint [pk, increment]
+  role app_role [not null]
+  permission app_permission [not null]
+
+  indexes {
+    (role, permission) [unique]
+  }
+}
+
+Ref: auth.users.id < role.user_id
+Ref: auth.users.id < profile.user_id
